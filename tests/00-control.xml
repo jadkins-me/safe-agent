@@ -6,7 +6,7 @@
     <Description>Download a tiny file from network once an hour at 5 minutes past the hour</Description>
     <TimePeriod>19</TimePeriod>
     <TimeOffset>0</TimeOffset>
-    <TestType>Download-Health-Check</TestType>
+    <TestType>Download</TestType>
     <TestOptions>
       <Option key="filesize" value="tiny"/>
       <Option key="workers" value="1"/>
@@ -21,7 +21,7 @@
     <Description>Download a small file from network once an hour at 10 minutes past the hour</Description>
     <TimePeriod>20</TimePeriod>
     <TimeOffset>0</TimeOffset>
-    <TestType>Download-Health-Check</TestType>
+    <TestType>Download</TestType>
     <TestOptions>
       <Option key="filesize" value="small"/>
       <Option key="workers" value="1"/>
