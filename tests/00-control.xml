@@ -21,7 +21,7 @@
     <Description>Download a small file from network once an hour at 10 minutes past the hour</Description>
     <TimePeriod>10</TimePeriod>
     <TimeOffset>0</TimeOffset>
-    <TestType>Download</TestType>
+    <TestType>Quote</TestType>
     <TestOptions>
       <Option key="filesize" value="small"/>
       <Option key="workers" value="1"/>
