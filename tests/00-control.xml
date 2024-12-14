@@ -9,7 +9,7 @@
     <TestType>Download</TestType>
     <TestOptions>
       <Option key="filesize" value="tiny"/>
-      <Option key="workers" value="3"/>
+      <Option key="workers" value="7"/>
       <Option key="repeat" value="false"/>
       <Option key="offset" value="false"/> 
       <Option key="timeout" value="30"/> 
@@ -22,10 +22,11 @@
     <Description>Download a small file from network once an hour at 10 minutes past the hour</Description>
     <TimePeriod>10</TimePeriod>
     <TimeOffset>0</TimeOffset>
-    <TestType>Quote</TestType>
+    <TestType>Download</TestType>
     <TestOptions>
       <Option key="filesize" value="small"/>
-      <Option key="workers" value="1"/>
+      <Option key="workers" value="5"/>
+      <Option key="repeat" value="false"/>
       <Option key="offset" value="false"/> 
       <Option key="timeout" value="30"/> 
       <Option key="retry" value="3"/> 
