@@ -12,6 +12,7 @@
       <Option key="workers" value="7"/>
       <Option key="repeat" value="false"/>
       <Option key="offset" value="false"/> 
+      <Option key="repeat" value="false"/>
       <Option key="timeout" value="30"/> 
       <Option key="retry" value="3"/> 
     </TestOptions> 
@@ -28,6 +29,7 @@
       <Option key="workers" value="5"/>
       <Option key="repeat" value="false"/>
       <Option key="offset" value="false"/> 
+      <Option key="repeat" value="false"/>
       <Option key="timeout" value="30"/> 
       <Option key="retry" value="3"/> 
     </TestOptions> 
