@@ -2,6 +2,8 @@
 ===================================================================================================
 Title : kill_switch.py
 
+Description : Global kill switch code to pause execution
+
 Copyright 2024 - Jadkins-Me
 
 This Code/Software is licensed to you under GNU AFFERO GENERAL PUBLIC LICENSE (GPL), Version 3
@@ -16,6 +18,7 @@ permissions and limitations relating to use of the Code/Software.
 import requests
 import constants
 from datetime import datetime, timedelta
+import logging
 from log import LogWriter
 from ratelimit import limits, RateLimitException 
 
@@ -41,9 +44,7 @@ def ignore_rate_limit(func):
             current_time = datetime.now() 
             if current_time - last_exception_time >= CONST_FIVE_MINUTES: 
                 last_exception_time = current_time 
-                log_writer.log(f"Rate limit : check_for_kill_switch reached. Ignoring this request.") 
-            else: 
-                log_writer.logf("Rate limit spam being surpressed for 5 minutes.")
+                log_writer.log(f"Rate limit : check_for_kill_switch called, suppressing for 5 minutes",logging.INFO) 
             #endIf    
             return None
         #endTry

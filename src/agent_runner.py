@@ -1,10 +1,18 @@
 """
-===============================================================================
+===================================================================================================
 Title : agent_runner.py
 
-Description : responsible for running tasks
+Description : responsible for running tasks, and spawning workers
 
-===============================================================================
+Copyright 2024 - Jadkins-Me
+
+This Code/Software is licensed to you under GNU AFFERO GENERAL PUBLIC LICENSE (GPL), Version 3
+Unless required by applicable law or agreed to in writing, the Code/Software distributed
+under the GPL Licence is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. Please review the Licences for the specific language governing
+permissions and limitations relating to use of the Code/Software.
+
+===================================================================================================
 """
 import constants
 import inspect
@@ -16,6 +24,10 @@ import time
 from datetime import datetime, timedelta
 from agent_download import AgentDownloader
 
+#get a handle to the logging class
+log_writer = LogWriter()
+
+#to-do: these should not be here
 CONST_DEFAULT_WORKERS = 1
 CONST_MAX_WORKERS = 10
 
@@ -27,6 +39,7 @@ CONST_DEFAULT_RETRY = 3
 CONST_DEFAULT_TIMEOUT = 30
 CONST_DEFAULT_REPEAT = False
 
+#This can go multi-class, be aware of thread safety !
 class AgentRunner:
     def __init__(self):
         self.__AgentRunnerRef = ""
@@ -37,6 +50,12 @@ class AgentRunner:
         # Calculate the time until the next 55-minute mark 
         self.schedule_self_destruct()
 
+    def exec_upload_task(self, task):
+        pass
+
+    def exec_quote_task(self, task):
+        pass
+    
     def exec_download_task(self, task):
         log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: INVOKE",logging.INFO)
 
@@ -60,10 +79,11 @@ class AgentRunner:
         
         threads = []
 
+        #spawn the thread workers
         for i in range(workers):
             downloadclient = AgentDownloader()
             self.downloadclients.append(downloadclient)
-            thread = threading.Thread(target=downloadclient.download, args=(filesize, offset, timeout, retry, repeat))
+            thread = threading.Thread(target=downloadclient.download, args=(filesize, offset, timeout, retry, repeat), name=f"Thread-2(AgentRunner.exec_download_task).{task.task_ref}.{self.created_time.strftime('%Y-%m-%d %H:%M:%S')}")
             threads.append(thread)
             thread.start()
         
@@ -88,8 +108,11 @@ class AgentRunner:
             #endIf
         #endFor
         log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: return: NONE",logging.INFO)
+
+        #make sure we try and hand the thread back :to-do need better thread safety code, as if this is missed we can run out of threads !
+        self.cleanup()
         
-    def schedule_self_destruct(self): 
+    def schedule_self_destruct(self): #todo: tidy this up
         now = datetime.now() 
         minutes = now.minute 
         seconds = now.second 
@@ -123,5 +146,3 @@ class AgentRunner:
 
         log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Instance Deleted", logging.INFO)
         del self
-
-log_writer = LogWriter(log_to_file=True)

@@ -42,7 +42,7 @@ class LogWriter:
             # Console handler
             console_handler = logging.StreamHandler()
             console_handler.setLevel(logging.DEBUG)
-            console_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt=constants.DATE_FORMAT)
+            console_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s\r', datefmt=constants.DATE_FORMAT)
             console_handler.setFormatter(console_format)
             self.logger.addHandler(console_handler)
 

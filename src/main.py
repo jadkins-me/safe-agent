@@ -29,7 +29,9 @@ import tty
 import termios 
 import time
 from agent_performance import Performance
-from constants import Exception , Configuration          
+from constants import Exception , Configuration  
+from evm import EvmManager
+from agent_limiter import Limiter      
 
 # DEFINITIONS ------------------------------------------------------------------
 def getch(): 
@@ -82,6 +84,9 @@ if __name__ == "__main__":
     #endIfElse
     client = None
 
+    #Start the EVM instance
+    evm_manager = EvmManager()
+
     #Create an instance of global test schedule, which will chain all the worker threads
     schedule_manager = ScheduleManager()
     schedule_manager.initiate()
@@ -90,9 +95,13 @@ if __name__ == "__main__":
     #create performance logging and metric global instance
     perf = Performance()
 
+    #rate limit handler for global requests
+    rate_limit = Limiter()
+    rate_limit.show_limits()
+
     #Show console update that we are running
     log_writer.log(f"Agent Scheduler Threads for (ScheduleManager) and (TaskManager) started", logging.INFO)
-    log_writer.log(F"Press >> q << to terminate agent - (10 second delay)", logging.INFO)
+    log_writer.log(F"Press >> q << to terminate agent - >> f << to fetch updated tasks before :00 - (10 second delay)", logging.INFO)
 
      # Start the input reading thread 
     input_thread = threading.Thread(target=read_input, name="Thread-0(_main.read_input)") 
@@ -110,8 +119,7 @@ if __name__ == "__main__":
                 sys.exit(None)
                 #end __main__
             elif user_input == 'f': 
-                #to:do - place holder
-                pass 
+                schedule_manager.fetch_tasks()
             #endIf
         except queue.Empty: 
             # handle this when no user input - should really be somewhere else

@@ -1,10 +1,18 @@
 """
-===============================================================================
+===================================================================================================
 Title : agent_performance.py
 
 Description : logging and processing of performance stats
 
-===============================================================================
+Copyright 2024 - Jadkins-Me
+
+This Code/Software is licensed to you under GNU AFFERO GENERAL PUBLIC LICENSE (GPL), Version 3
+Unless required by applicable law or agreed to in writing, the Code/Software distributed
+under the GPL Licence is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. Please review the Licences for the specific language governing
+permissions and limitations relating to use of the Code/Software.
+
+===================================================================================================
 """
 
 # reference from other objects with
@@ -48,7 +56,7 @@ class Performance:
             except Exception as e:
                 self.except_handler.throw(error=(f"{self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Permission or File access Error"))
             
-            self.flush_thread = threading.Thread(target=self.__flush_periodically, daemon=True) 
+            self.flush_thread = threading.Thread(target=self.__flush_periodically, daemon=True, name="Thread-4(Performance._flush_periodically)") 
             self.flush_thread.start() 
 
     def __flush_periodically(self): 
@@ -65,7 +73,7 @@ class Performance:
         
         with open(self.metrics_file, 'a') as file: 
             for metric in temp_metrics: 
-                file.write(f"{self.perf_influxdb},{self.__get_influxdb_time()},{metric.test_type},{metric.file_size},{metric.execution},{metric.crc},{metric.cost},{metric.cli_err},{metric.nw_err},{metric.un_err}\n")
+                file.write(f"{self.perf_influxdb},test={metric.test_type} filesize=\"{metric.file_size}\",md5={metric.md5},cost={metric.cost},cli_err={metric.cli_err},nw_err={metric.nw_err},un_err={metric.un_err},exec={metric.execution} {self.__get_influxdb_time()}\n")
     
     def __1_min_flush(self): 
         # Every 1 minute, calculate stats and flush metrics to disk 
@@ -78,13 +86,13 @@ class Performance:
         self._instance = None
 
     def __get_influxdb_time(self):
-        # Get current UTC time with nanoseconds 
+        # Get current UTC time 
         current_time = datetime.datetime.utcnow() 
         
-        # Format the time for InfluxDB with nanosecond precision 
-        formatted_time = current_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')[:-3] + 'Z'
-
-        return(formatted_time)
+        # Get the time since Unix Epoch in nanoseconds 
+        epoch_time_ns = int(time.mktime(current_time.timetuple())) * 1_000_000_000 + current_time.microsecond * 1_000 
+        
+        return epoch_time_ns
     
     def __calculate_stats(self):
         # Calculate statistics for all metrics in mem_metrics 
@@ -100,7 +108,7 @@ class Performance:
         with open(self.metrics_summary_file, 'a') as file: 
             for name, data in stats.items(): 
                 mean_time = round( data['total_time'] / data['count'], 2) 
-                file.write(f"{self.perf_influxdb_summary},{self.__get_influxdb_time()},{name},{data['count']},{data['min']},{data['max']},{mean_time}\n")
+                file.write(f"{self.perf_influxdb_summary},type={name},min={data['min']},max={data['max']},mean={mean_time},count={data['count']} {self.__get_influxdb_time()}\n")
 
     def add_metric(self, results: 'Performance.TestResults' ):
         log_writer.log(f"+ + {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Add Metric -> {results.test_type},{results.execution:.2f}s", logging.INFO) 
@@ -110,10 +118,10 @@ class Performance:
         def __init__( 
                 self, 
                 test_type: str, 
-                file_size: Optional[float] = None, 
-                execution: Optional[float] = None, 
-                crc: Optional[float] = None, 
-                cost: Optional[float] = None, 
+                file_size: Optional[float] = 0, 
+                execution: Optional[float] = 0, 
+                md5: Optional[float] = 0, 
+                cost: Optional[float] = 0, 
                 cli_err: int = 0, 
                 nw_err: int = 0, 
                 un_err: int = 0 
@@ -121,7 +129,7 @@ class Performance:
             self.test_type = test_type 
             self.file_size = file_size 
             self.execution = execution 
-            self.crc = crc 
+            self.md5 = md5 
             self.cost = cost 
             self.cli_err = cli_err 
             self.nw_err = nw_err 
@@ -130,7 +138,7 @@ class Performance:
         def __repr__(self): 
             return ( 
                 f"TestResults(test_type={self.test_type!r}, file_size={self.file_size!r}, execution={self.execution!r}, " 
-                f"crc={self.crc!r}, cost={self.cost!r}, cli_err={self.cli_err!r}, nw_err={self.nw_err!r}, un_err={self.un_err!r})" 
+                f"md5={self.md5!r}, cost={self.cost!r}, cli_err={self.cli_err!r}, nw_err={self.nw_err!r}, un_err={self.un_err!r})" 
             )
 
     class Test: 

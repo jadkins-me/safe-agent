@@ -43,7 +43,7 @@ class ant_client:
       error_unknown = {"error:unknown"}
 
       # BOILER: todo
-      log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: file: {file_address.name}, address: {file_address.address}, crc: {file_address.crc}",logging.INFO)        
+      log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: file: {file_address.name}, address: {file_address.address}, md5: {file_address.md5}",logging.INFO)        
 
       temp_file_name = self.__get_temp_filepath(file_address.name)
       temp_file_name_log = "./cache/log/"
