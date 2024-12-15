@@ -20,6 +20,7 @@ import inspect
 from log import LogWriter
 from collections import defaultdict
 from typing import Optional
+from constants import Exception
 
 class Performance:
     #Ensure this is a single instance class
@@ -39,9 +40,14 @@ class Performance:
         if not hasattr(self, 'initialized'): 
             # Ensure __init__ runs only once 
             self.initialized = True 
-            # Initialize stuff here !! TO-DO
-            os.makedirs(os.path.dirname(self.metrics_file), exist_ok=True) 
-            os.makedirs(os.path.dirname(self.metrics_summary_file), exist_ok=True) 
+            # Initialize stuff here !! TO-DO # this is a mess
+            self.except_handler = Exception()
+            try:
+                os.makedirs(os.path.dirname(self.metrics_file), exist_ok=True) 
+                os.makedirs(os.path.dirname(self.metrics_summary_file), exist_ok=True) 
+            except Exception as e:
+                self.except_handler.throw(error=(f"{self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Permission or File access Error"))
+            
             self.flush_thread = threading.Thread(target=self.__flush_periodically, daemon=True) 
             self.flush_thread.start() 
 
@@ -49,7 +55,7 @@ class Performance:
         # Background thread method to flush metrics every 1 minute 
         while True: 
             time.sleep(60) 
-            self.__1_min_flush()
+            self.__1_min_flush()     
             #to-do need to handle thread termination, as it might hang exit in waiting state
 
     def __flush_mem_metrics_to_disk(self):

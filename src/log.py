@@ -1,12 +1,21 @@
 """
-===============================================================================
+===================================================================================================
 Title : log.py
 
 Description : Shared log writer usable by all modules
 
-===============================================================================
+Copyright 2024 - Jadkins-Me
+
+This Code/Software is licensed to you under GNU AFFERO GENERAL PUBLIC LICENSE (GPL), Version 3
+Unless required by applicable law or agreed to in writing, the Code/Software distributed
+under the GPL Licence is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. Please review the Licences for the specific language governing
+permissions and limitations relating to use of the Code/Software.
+
+===================================================================================================
 """
 
+#todo : needs update
 import logging
 import os
 import time
@@ -15,13 +24,15 @@ import constants
 class LogWriter:
     _instance = None
 
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super(LogWriter, cls).__new__(cls)
-        return cls._instance
+    def __new__(cls, *args, **kwargs): 
+        if not cls._instance: cls._instance = super(LogWriter, cls).__new__(cls, *args, **kwargs) 
+        return cls._instance 
 
-    def __init__(self, log_to_file=False, log_file_path=constants.LOG_FILE_PATH):
+    #todo : this needs much better handler
+    def __init__(self, log_to_file=constants.LOG_TO_FILE, log_file_path=constants.LOG_FILE_PATH):
         if not hasattr(self, 'initialized'):
+            self.initialized = True
+
             self.logger = logging.getLogger('LogWriter')
             self.logger.setLevel(logging.DEBUG)
 
@@ -49,7 +60,6 @@ class LogWriter:
                     file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt=constants.DATE_FORMAT)
                     file_handler.setFormatter(file_format)
                     self.logger.addHandler(file_handler)
-            self.initialized = True
 
     def log(self, message, level=logging.INFO):
         if level == logging.DEBUG:

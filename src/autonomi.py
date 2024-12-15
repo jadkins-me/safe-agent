@@ -13,10 +13,14 @@ import inspect
 import logging
 from log import LogWriter
 import tempfile
+from constants import Exception
+
+log_writer = LogWriter()
 
 class ant_client:
    def ___init___(self):
       # BOILER: todo
+      self.except_handler = Exception()
       pass
    
    def __get_temp_filepath (self,filename):
@@ -70,6 +74,7 @@ class ant_client:
                err_tag = action
          return (err_tag)
       except FileNotFoundError:  #to-do : should be using common dictionary
+         self.except_handler.throw(error=(f"{self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: File Not Found"))
          return "Error: not_found" # don't change the wording as we look for a match in other modules
 
 
@@ -84,6 +89,5 @@ class ant_client:
       except subprocess.CalledProcessError as e:
          return f"Error: {e.stderr.strip()}"
       except FileNotFoundError:
+         self.except_handler.throw(error=(f"{self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: File Not Found"))
          return "Error: not_found" # don't change the wording as we look for a match in other modules
-
-log_writer = LogWriter(log_to_file=True)
