@@ -130,7 +130,7 @@ class ScheduleManager:
             self.resume_schedule()
         #EndIfElse
 
-# ----> DOWNLOAD TASK SCEDULER <--------------------------------------------------------------------------------------------------
+# ----> DOWNLOAD TASK SCHEDULER <--------------------------------------------------------------------------------------------------
     def __downloadtask_schedule(self, task):
         log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: {task.task_ref}", logging.DEBUG )
 
@@ -153,7 +153,7 @@ class ScheduleManager:
         
         log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: return: NONE", logging.DEBUG )
 
-# ----> QUOTE TASK SCEDULER <--------------------------------------------------------------------------------------------------
+# ----> QUOTE TASK SCHEDULER <--------------------------------------------------------------------------------------------------
     def __quotetask_schedule(self, task):
         log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: {task.task_ref}", logging.DEBUG )
 
@@ -176,7 +176,7 @@ class ScheduleManager:
         
         log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: return: NONE", logging.DEBUG )
 
-# ----> UPLOAD TASK SCEDULER <--------------------------------------------------------------------------------------------------
+# ----> UPLOAD TASK SCHEDULER <--------------------------------------------------------------------------------------------------
     def __uploadtask_schedule(self, task):
         log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: {task.task_ref}", logging.DEBUG )
 
