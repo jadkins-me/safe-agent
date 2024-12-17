@@ -28,7 +28,10 @@ import inspect
 from log import LogWriter
 from collections import defaultdict
 from typing import Optional
-from constants import Exception
+from application import Agent
+
+cls_agent = Agent()
+log_writer = LogWriter()
 
 class Performance:
     #Ensure this is a single instance class
@@ -54,7 +57,7 @@ class Performance:
                 os.makedirs(os.path.dirname(self.metrics_file), exist_ok=True) 
                 os.makedirs(os.path.dirname(self.metrics_summary_file), exist_ok=True) 
             except Exception as e:
-                self.except_handler.throw(error=(f"{self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Permission or File access Error"))
+                cls_agent.Exception.throw(error=(f"{self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Permission or File access Error"))
             
             self.flush_thread = threading.Thread(target=self.__flush_periodically, daemon=True, name="Thread-4(Performance._flush_periodically)") 
             self.flush_thread.start() 
@@ -161,5 +164,3 @@ class Performance:
             results.execution = round(self.execution_time, 2) #todo - limit to 2 decimals
             self.performance.add_metric(results) 
             del self
-
-log_writer = LogWriter(log_to_file=True)

@@ -19,17 +19,18 @@ import schedule
 import inspect
 import time
 import threading
-import constants
+from application import Agent
 import logging
-from agent_runner import AgentRunner
+from agent.agent_runner import AgentRunner
 from tasks import Agent_Task
 import kill_switch
 from log import LogWriter
-from agent_helper import Utils
+from agent.agent_helper import Utils
 from tabulate import tabulate
 
 #get a handle to logging class
 log_writer = LogWriter()
+cls_agent = Agent()
 
 #get a handle to kill switch detection
 killswitch_checker = kill_switch.GitHubRepoIssuesChecker()
@@ -100,7 +101,7 @@ class ScheduleManager:
         if killswitch_found:
             log_writer.log(f"Kill-switch ON, test paused by github issue created {datetime}, agent active.",logging.WARNING)
         else:
-            tasks = Agent_Task.fetch_and_parse_xml(constants.SCHEDULER_URL)
+            tasks = Agent_Task.fetch_and_parse_xml(cls_agent.Configuration.SCHEDULER_URL)
 
             # Collect data for table, and store it in tabulate format 
             table_data = []
@@ -238,9 +239,9 @@ class ScheduleManager:
             self.scheduler_threadTM.start()
 
             #to-do: change schedule to every minute for fast refresh, and ability to invoke refresh with rate limit
-            self._schedulerTM.every().hour.at(constants.SCHEDULER_CHECK).do(self.fetch_tasks)
+            self._schedulerTM.every().hour.at(cls_agent.Configuration.SCHEDULER_CHECK).do(self.fetch_tasks)
             #self._schedulerTM.every(1).minutes.do(self.fetch_tasks)
-            log_writer.log(f"Starting TM Scheduler to check github for new jobs at {constants.SCHEDULER_CHECK} every hour", logging.INFO)
+            log_writer.log(f"Starting TM Scheduler to check github for new jobs at {cls_agent.Configuration.SCHEDULER_CHECK} every hour", logging.INFO)
             self._instance = True      
         else:
             log_writer.log(F"Scheduler intiate has been called more than once, this is not supported.", logging.ERROR)

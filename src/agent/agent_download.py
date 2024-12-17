@@ -17,13 +17,12 @@ permissions and limitations relating to use of the Code/Software.
 
 import inspect
 import logging
-import constants
 from log import LogWriter
 from dataclasses import dataclass
-from autonomi import ant_client
-from agent_performance import Performance
-from constants import Exception
-from agent_limiter import Limiter
+from client.autonomi import ant_client
+from agent.agent_performance import Performance
+from application import Agent
+from agent.agent_limiter import Limiter
 import csv 
 import os 
 import random 
@@ -31,16 +30,15 @@ import requests
 import time 
 import json
 import kill_switch
-from agent_helper import Utils
+from agent.agent_helper import Utils
+
+cls_agent = Agent()
 
 #logging handler
 log_writer = LogWriter()
 
 #get a handle to kill switch detection
 killswitch_checker = kill_switch.GitHubRepoIssuesChecker()
-
-#exception handler class init
-except_handler = Exception()
 
 #This can go MultiClass, be aware of thread safety !
 class AgentDownloader:
@@ -59,19 +57,19 @@ class AgentDownloader:
 
 #-----> Cache handling of files that can be processed in the CSV file ----------------------------------------
     def __download_csv(self): 
-        response = requests.get(constants.CSV_URL) 
+        response = requests.get(cls_agent.Configuration.CSV_URL) 
         response.raise_for_status() 
-        with open(constants.CACHE_FILE, 'w', newline='') as file: 
+        with open(cls_agent.Configuration.CACHE_FILE, 'w', newline='') as file: 
             file.write(response.text) 
-        with open(constants.CACHE_INFO_FILE, 'w') as info_file: 
+        with open(cls_agent.Configuration.CACHE_INFO_FILE, 'w') as info_file: 
             cache_info = {'download_time': time.time()} 
             json.dump(cache_info, info_file) 
                 
     def __is_cache_valid(self): 
-        if os.path.exists(constants.CACHE_FILE) and os.path.exists(constants.CACHE_INFO_FILE): 
-            with open(constants.CACHE_INFO_FILE, 'r') as info_file: 
+        if os.path.exists(cls_agent.Configuration.CACHE_FILE) and os.path.exists(cls_agent.Configuration.CACHE_INFO_FILE): 
+            with open(cls_agent.Configuration.CACHE_INFO_FILE, 'r') as info_file: 
                 cache_info = json.load(info_file) 
-                if time.time() - cache_info['download_time'] < constants.CACHE_TIME: 
+                if time.time() - cache_info['download_time'] < cls_agent.Configuration.CACHE_TIME: 
                     return True
                 #endIf 
                 return False 
@@ -83,7 +81,7 @@ class AgentDownloader:
             self.__download_csv()
         #endIf
             
-        with open(constants.CACHE_FILE, newline='') as csvfile: 
+        with open(cls_agent.Configuration.CACHE_FILE, newline='') as csvfile: 
             reader = csv.DictReader(row for row in csvfile if not row.startswith('#')) 
             matching_rows = [row for row in reader if row.get('fileSize') == filesize] 
             if matching_rows: 
@@ -170,7 +168,7 @@ class AgentDownloader:
 
                 #throw and exception, as we can't run this task
                 #to-do: need a more graceful way to just block download tasks
-                except_handler.throw(error="AgentDownloader.download: Unable to find a file in CSV matching file size")
+                cls_agent.Exception.throw(error="AgentDownloader.download: Unable to find a file in CSV matching file size")
             #endIfElse
 
             #*** Finish Download
@@ -186,7 +184,7 @@ class AgentDownloader:
                 #endIfElse
 
                 #enfore a sleep, so this thread can yield
-                time.sleep(constants.DOWNLOAD_YIELD_SECS)                 
+                time.sleep(cls_agent.Configuration.DOWNLOAD_YIELD_SECS)                 
             else:
                 #download was not requested to repeat
                 repeat_loop = False

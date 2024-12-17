@@ -14,7 +14,7 @@ permissions and limitations relating to use of the Code/Software.
 
 ===================================================================================================
 """
-import constants
+from application import Agent
 import inspect
 import logging
 from log import LogWriter
@@ -22,10 +22,11 @@ from tasks import Agent_Task
 import threading 
 import time 
 from datetime import datetime, timedelta
-from agent_download import AgentDownloader
+from agent.agent_download import AgentDownloader
 
 #get a handle to the logging class
 log_writer = LogWriter()
+cls_agent = Agent()
 
 #to-do: these should not be here
 CONST_DEFAULT_WORKERS = 1

@@ -17,21 +17,19 @@ permissions and limitations relating to use of the Code/Software.
 
 # IMPORTS --------------------------------------------------------------------
 
-from autonomi import ant_client
+from application import Agent
+from client.autonomi import ant_client
 import logging
 from log import LogWriter
 from scheduler import ScheduleManager
 import sys
-import version
 import threading 
 import queue 
 import tty 
 import termios 
 import time
-from agent_performance import Performance
-from constants import Exception , Configuration  
-from evm import EvmManager
-from agent_limiter import Limiter      
+from agent.agent_performance import Performance
+from agent.agent_limiter import Limiter      
 
 # DEFINITIONS ------------------------------------------------------------------
 def getch(): 
@@ -54,24 +52,23 @@ def read_input():
 # MAIN -------------------------------------------------------------------------
 if __name__ == "__main__":
     
+    #application class single instance
+    cls_agent = Agent()
+    cls_agent.start()
+    cls_agent.Configuration.load()
+
+    #singleton class logging thread
+    log_writer = LogWriter()
+    log_writer.config()
+
     #handler for the main input loop
     input_queue = queue.Queue()
     
-    #exception handler class init
-    except_handler = Exception()
-
-    #singleton class to configure constants from env, config file #to-do
-    _main_config = Configuration()
-    _main_config.load() #todo
-    
-    #singleton class logging thread
-    log_writer = LogWriter()
-
     #Build Information
-    log_writer.log(f"Build Name: {version.BUILD_NAME}", logging.INFO)
-    log_writer.log(f"Build Version: {version.BUILD_VERSION}", logging.INFO)
-    log_writer.log(f"Build Commit Hash: {version.COMMIT_HASH}", logging.INFO)
-    log_writer.log(f"Build Date: {version.BUILD_DATE}", logging.INFO)
+    log_writer.log(f"Build Name: {cls_agent.version.BUILD_NAME}", logging.INFO)
+    log_writer.log(f"Build Version: {cls_agent.version.BUILD_VERSION}", logging.INFO)
+    log_writer.log(f"Build Commit Hash: {cls_agent.version.COMMIT_HASH}", logging.INFO)
+    log_writer.log(f"Build Date: {cls_agent.version.BUILD_DATE}", logging.INFO)
 
     #Detect if client can be found, else terminate
     client = ant_client()
@@ -83,9 +80,6 @@ if __name__ == "__main__":
         log_writer.log(f"Found Client: {ant_version}", logging.INFO)
     #endIfElse
     client = None
-
-    #Start the EVM instance
-    evm_manager = EvmManager()
 
     #Create an instance of global test schedule, which will chain all the worker threads
     schedule_manager = ScheduleManager()
@@ -112,7 +106,8 @@ if __name__ == "__main__":
     while True: 
         try: 
             user_input = input_queue.get_nowait() 
-            if user_input == 'q': 
+            if user_input == 'q':
+                cls_agent.exec_Shutdown() 
                 schedule_manager.terminate()
                 perf.shutdown()
                 log_writer.log(f"Scheduler Threads terminated and Agent is stopped.", logging.INFO)
@@ -123,8 +118,8 @@ if __name__ == "__main__":
             #endIf
         except queue.Empty: 
             # handle this when no user input - should really be somewhere else
-            if except_handler.has_occurred():
-                log_writer.log(f"Code exception has occured {except_handler.get}",logging.FATAL)
+            if cls_agent.Exception.has_occurred():
+                log_writer.log(f"Code exception has occured {cls_agent.Exception.get}",logging.FATAL)
                 sys.exit(1)
                 #end __main__ with FATAL exception
         # Sleep for 10 seconds 

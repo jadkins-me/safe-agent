@@ -1,6 +1,6 @@
 """
 ===================================================================================================
-Title : helper.py
+Title : agent_helper.py
 
 Description : helper utilities that don't fit in other classes
 
@@ -16,14 +16,15 @@ permissions and limitations relating to use of the Code/Software.
 """
 
 import datetime
-import constants
 import random
-import constants
+from application import Agent
+
+cls_agent = Agent()
 
 class Utils:
     def scheduler_no_tasks_window(): 
         current_minute = datetime.datetime.now().minute 
-        if current_minute in constants.SCHEDULER_NO_TASKS:  
+        if current_minute in cls_agent.Configuration.SCHEDULER_NO_TASKS:  
             return True 
        #endIf
 
@@ -31,8 +32,8 @@ class Utils:
     def offset(offset_minutes):
         if int(offset_minutes) < 0:
             return 0
-        elif int(offset_minutes) > constants.DOWNLOAD_OFFSET_MAX_MINS:
-            offset_minutes=constants.DOWNLOAD_OFFSET_MAX_MINS
+        elif int(offset_minutes) > cls_agent.Configuration.DOWNLOAD_OFFSET_MAX_MINS:
+            offset_minutes=cls_agent.Configuration.DOWNLOAD_OFFSET_MAX_MINS
         #endIfElse
 
         #add a delta to the offset

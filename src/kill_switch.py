@@ -16,15 +16,15 @@ permissions and limitations relating to use of the Code/Software.
 """
 
 import requests
-import constants
+from application import Agent
 from datetime import datetime, timedelta
 import logging
 from log import LogWriter
 from ratelimit import limits, RateLimitException 
 
 #to-do : constants need moving
-
 log_writer = LogWriter()
+cls_agent = Agent()
 
 # Define the rate limit (60 requests per hour) 
 CONST_ONE_HOUR = 3600 
@@ -52,11 +52,13 @@ def ignore_rate_limit(func):
 
 class GitHubRepoIssuesChecker:
     def __init__(self):
-        self.owner = constants.GIT_OWNER
-        self.repo = constants.GIT_REPO
-        self.url = constants.GIT_KILL_SWITCH_URL
+        pass
 
     def __get_issues(self):
+        self.owner = cls_agent.Configuration.GIT_OWNER
+        self.repo = cls_agent.Configuration.GIT_REPO
+        self.url = cls_agent.Configuration.GIT_KILL_SWITCH_URL
+        
         # Substitute the variables into the URL
         url = self.url.format(owner=self.owner, repo=self.repo)
         response = requests.get(url)

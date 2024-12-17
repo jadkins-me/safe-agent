@@ -1,6 +1,6 @@
 """
 ===================================================================================================
-Title : evm.py
+Title : arbitrum.py
 
 Description : control and interface to the EVM
 
@@ -15,7 +15,9 @@ permissions and limitations relating to use of the Code/Software.
 ===================================================================================================
 """
 
-from constants import Exception
+from application import Agent
+
+cls_agent = Agent()
 
 # Notes : This is a single instance class, so ensure that is enforced.
 class EvmManager:
@@ -31,7 +33,6 @@ class EvmManager:
         if not hasattr(self, 'initialized'): 
             # Ensure __init__ runs only once 
             self.initialized = True
-            except_handler = Exception()
 
     def __set_erc20_chain(self):
         pass

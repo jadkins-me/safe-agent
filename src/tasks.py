@@ -15,18 +15,15 @@ permissions and limitations relating to use of the Code/Software.
 ===================================================================================================
 """
 
-import constants
 import xml.etree.ElementTree as ET
 import requests
 import logging
 from log import LogWriter
-from constants import Exception 
+from application import Agent
 
 # handle to logging
 log_writer = LogWriter()
-
-#exception handler class init
-except_handler = Exception()
+cls_agent = Agent()
 
 class Agent_Task:
     def __init__(self, task_ref, description, time_period, time_offset, test_type, test_options):
@@ -45,11 +42,11 @@ class Agent_Task:
     #todo: need better exception handling to deal with badly formed XML
     def fetch_and_parse_xml(url):
         try:
-            response = requests.get(constants.SCHEDULER_URL)
+            response = requests.get(cls_agent.Configuration.SCHEDULER_URL)
             response.raise_for_status()  # Raise an exception if the request fails
         except requests.exceptions.RequestException as e:
             log_writer.log(f"Error fetching the XML data: {e}", logging.ERROR)
-            except_handler.throw(error=f"tasks.fetch_and_parse_xml: Error {e}")
+            cls_agent.Exception.throw(error=f"tasks.fetch_and_parse_xml: Error {e}")
             return []
         #endTry
 
@@ -57,7 +54,7 @@ class Agent_Task:
             root = ET.fromstring(response.text)
         except ET.ParseError as e:
             log_writer.log(f"Error parsing the XML data: {e}", logging.ERROR)
-            except_handler.throw(error=f"tasks.fetch_and_parse_xml: Error {e}")
+            cls_agent.Exception.throw(error=f"tasks.fetch_and_parse_xml: Error {e}")
             return []
         #endTry
 

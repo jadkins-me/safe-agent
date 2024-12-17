@@ -15,23 +15,34 @@ permissions and limitations relating to use of the Code/Software.
 ===================================================================================================
 """
 
-#todo : needs update
+#todo : needs a complete re-write
 import logging
 import os
 import time
-import constants
+from application import Agent
 
+# Notes : This is a single instance class, so ensure that is enforced.
 class LogWriter:
+    #Ensure this is a single instance class
     _instance = None
+
+    cls_agent = Agent()
 
     def __new__(cls, *args, **kwargs): 
         if not cls._instance: cls._instance = super(LogWriter, cls).__new__(cls, *args, **kwargs) 
         return cls._instance 
 
     #todo : this needs much better handler
-    def __init__(self, log_to_file=constants.LOG_TO_FILE, log_file_path=constants.LOG_FILE_PATH):
+    def __init__(self):
         if not hasattr(self, 'initialized'):
             self.initialized = True
+                
+    def config(self, log_to_file=None, log_file_path=None): 
+        # Assign default values if None 
+        if log_to_file is None: 
+            log_to_file = self.cls_agent.Configuration.LOG_TO_FILE 
+        if log_file_path is None: 
+            log_file_path = self.cls_agent.Configuration.LOG_FILE_PATH
 
             self.logger = logging.getLogger('LogWriter')
             self.logger.setLevel(logging.DEBUG)
@@ -42,7 +53,7 @@ class LogWriter:
             # Console handler
             console_handler = logging.StreamHandler()
             console_handler.setLevel(logging.DEBUG)
-            console_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s\r', datefmt=constants.DATE_FORMAT)
+            console_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s\r', datefmt=self.cls_agent.Configuration.DATE_FORMAT)
             console_handler.setFormatter(console_format)
             self.logger.addHandler(console_handler)
 
@@ -57,7 +68,7 @@ class LogWriter:
                 if log_to_file:
                     file_handler = logging.FileHandler(log_file_path)
                     file_handler.setLevel(logging.DEBUG)
-                    file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt=constants.DATE_FORMAT)
+                    file_format = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datefmt=self.cls_agent.Configuration.DATE_FORMAT)
                     file_handler.setFormatter(file_format)
                     self.logger.addHandler(file_handler)
 
