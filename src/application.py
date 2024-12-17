@@ -46,6 +46,7 @@ class Agent:
     def start(self):       #must be called once to initilize the instances, but can't be called in __init__ as circular
         if not hasattr(self, 'started'):
             # Esure start runs only once
+            self.started = True
             
             if not self.Exception:
                 self.Exception = _Agent__ExceptionHandler()
