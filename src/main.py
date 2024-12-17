@@ -18,10 +18,8 @@ permissions and limitations relating to use of the Code/Software.
 # IMPORTS --------------------------------------------------------------------
 
 from application import Agent
-from client.autonomi import ant_client
 import logging
 from log import LogWriter
-from scheduler import ScheduleManager
 import sys
 import threading 
 import queue 
@@ -29,7 +27,9 @@ import tty
 import termios 
 import time
 from agent.agent_performance import Performance
-from agent.agent_limiter import Limiter      
+from agent.agent_limiter import Limiter
+from scheduler import ScheduleManager
+from client.autonomi import ant_client
 
 # DEFINITIONS ------------------------------------------------------------------
 def getch(): 
