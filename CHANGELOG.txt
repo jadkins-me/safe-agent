@@ -1,0 +1,2 @@
+* Due to thread safety issues in Python calling native Thread Class, reworking code to better handle inter-class messaging to cope with
+  out of sync.
