@@ -88,7 +88,7 @@ class Agent:
     
     def __set_agent_shutdown(self):
         self.__bool_agent_terminate = True
-        self.exec_Threads_Terminate()
+        self.set_Threads_Terminate()
 
     def is_Agent_Shutdown(self) -> bool :
         return(self.__bool_agent_terminate)
