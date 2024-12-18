@@ -153,7 +153,8 @@ class AgentDownloader:
                                 
                 #push timer start
                 _performance.start_timer()
-
+                _response = typedef_Agent_Client_Response() 
+                
                 try:
                     #custom type for client response handling - strong typing needed #todo
                     _response: typedef_Agent_Client_Response = self.ant_client.download (file_address,timeout)
