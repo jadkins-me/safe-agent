@@ -40,16 +40,44 @@ CONST_DEFAULT_RETRY = 3
 CONST_DEFAULT_TIMEOUT = 30
 CONST_DEFAULT_REPEAT = False
 
-#This can go multi-class, be aware of thread safety !
+# This can go multi-class, be aware of thread safety !
+# Note : There MUST be a watchdog thread to monitor for global agent events, else we will become orphaned
+
 class AgentRunner:
     def __init__(self):
-        self.__AgentRunnerRef = ""
         self.downloadclients = [] 
         self.created_time = datetime.now()
-        log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: created={self.created_time.strftime('%Y-%m-%d %H:%M:%S')}", logging.INFO )
 
-        # Calculate the time until the next 55-minute mark 
-        self.schedule_self_destruct()
+        log_writer.log(f"AgentRunner.__init__: created={self.created_time.strftime('%Y-%m-%d %H:%M:%S')}", logging.INFO )
+
+#watchdog, looking for global events to control threads in this class
+    def __start_watchdog(self):
+        try:
+            _self_thread_name = threading.current_thread().name
+
+            if _self_thread_name:
+                self._stop_watchdog = threading.Event()
+                self._watchdog = threading.Thread(target=self.__run_watchdog, name=f"{_self_thread_name}._watchdog")
+                self._watchdog.start()
+            #endIf
+        except Exception as e:
+            #to-do: throwing exception, but this needs better handling of why on __init__
+            cls_agent.Exception.throw(error=(f"AgentRunner.__start_watchdog: {e}"))
+        #endTry
+
+    def __run_watchdog(self):
+        log_writer.log(f"AgentRunner.__run_watchdog: Watchdog thread started",logging.DEBUG)
+        
+        while not self._stop_watchdog.is_set():
+            if cls_agent.is_Agent_Shutdown() or cls_agent.is_Threads_Terminate_Requested():
+                self._stop_watchdog.set()
+                self.terminate()
+            time.sleep(1)
+        #endWhile
+
+        log_writer.log(f"AgentRunner.__run_watchdog: Watchdog thread exited, killing class",logging.DEBUG)
+
+        self.terminate
 
     def exec_upload_task(self, task):
         pass
@@ -58,9 +86,9 @@ class AgentRunner:
         pass
     
     def exec_download_task(self, task):
-        log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: INVOKE",logging.INFO)
+        self.__start_watchdog()
 
-        self.__AgentRunnerRef = task.task_ref  # Make sure this is being set correctly
+        log_writer.log(f"AgentRunner.exec_download_task: Start | task_ref:{task.task_ref}",logging.DEBUG)
 
         # Get the workers value and ensure it's an integer, defaulting to the integer default if not present 
         workers = min(int(task.test_options.get('workers', CONST_DEFAULT_WORKERS)), CONST_MAX_WORKERS)
@@ -76,74 +104,39 @@ class AgentRunner:
         retry = task.test_options.get('retry', CONST_DEFAULT_RETRY)
         repeat = task.test_options.get('repeat', CONST_DEFAULT_REPEAT)
         
-        log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: task_ref:{task.task_ref}, filesize:{filesize}, workers:{workers}",logging.INFO)
+        log_writer.log(f"AgentRuner.exec_download_task: Processing | task_ref:{task.task_ref} | filesize:{filesize} | workers:{workers}",logging.DEBUG)
         
-        threads = []
-
+        _threads = []
+        
         #spawn the thread workers
         for i in range(workers):
-            downloadclient = AgentDownloader()
-            self.downloadclients.append(downloadclient)
-            thread = threading.Thread(target=downloadclient.download, args=(filesize, offset, timeout, retry, repeat), name=f"Thread-2(AgentRunner.exec_download_task).{task.task_ref}.{self.created_time.strftime('%Y-%m-%d %H:%M:%S')}")
-            threads.append(thread)
-            thread.start()
+            _downloadclient = AgentDownloader()
+            _downloadclient_thread = threading.Thread(target=_downloadclient.download, args=(filesize, offset, timeout, retry, repeat,), name=f"Thread-2(AgentRunner.Download).{task.task_ref}")
+            _downloadclient_thread.setDaemon(True)
+            _threads.append(_downloadclient_thread)
+            _downloadclient_thread.start()
+                
+        _thread_count = len(_threads)
+
+        while len(_threads) > 0 and not self._stop_watchdog.is_set():
+            for thread in _threads:
+                if thread.is_alive():
+                    thread.join(timeout=1)
+                else:
+                    _thread_count=_thread_count-1   
+                #endIf
+                if _thread_count == 0:
+                    break
+                #endIf
+            #endFor
+            if _thread_count == 0:
+                self._stop_watchdog.set()
+                log_writer.log(f"AgentRunner.exec_download_task: Control thread loop exited | task_ref:{task.task_ref}",logging.DEBUG)
+        #endWhile
+
+        log_writer.log(f"AgentRunner.exec_download_task: Finished | task_ref:{task.task_ref}",logging.DEBUG)
+
+    def terminate(self):
+        log_writer.log(f"AgentRunner.Terminate: Deleting Self", logging.DEBUG)
         
-        # Calculate time left until the 55th minute of the current hour 
-        now = datetime.now()
-        seconds_to_55 = ((55 - now.minute) * 60) - now.second
-        
-        # Wait for threads to complete or time out 
-        start_time = time.time()
-        for thread in threads:
-            elapsed = time.time() - start_time
-            remaining_time = seconds_to_55 - elapsed
-            if remaining_time > 0:
-                while thread.is_alive() and remaining_time > 0:
-                    thread.join(timeout=1)  # Check every second
-                    remaining_time -= 1
-                #endWhile
-            #endIf
-            if thread.is_alive():
-                log_writer.log(f"Terminating thread {thread.name} as it exceeded time limit", logging.WARNING)
-                # Threads cannot be forcefully terminated in Python :( #sad, so we log and move on
-            #endIf
-        #endFor
-        log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: return: NONE",logging.INFO)
-
-        #make sure we try and hand the thread back :to-do need better thread safety code, as if this is missed we can run out of threads !
-        self.cleanup()
-        
-    def schedule_self_destruct(self): #todo: tidy this up
-        now = datetime.now() 
-        minutes = now.minute 
-        seconds = now.second 
-        if minutes < 55: 
-            minutes_to_wait = 55 - minutes 
-        else: 
-            minutes_to_wait = (60 - minutes) + 55 # to the next hour and 55 minutes 
-        
-        seconds_to_wait = minutes_to_wait * 60 - seconds 
-        log_writer.log(f"- - {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: class self-destruction in {seconds_to_wait} seconds", logging.INFO )
-
-        self.deletion_thread = threading.Timer(seconds_to_wait, self.self_destruct) 
-        self.deletion_thread.start() 
-    
-    def self_destruct(self): 
-        log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: self-destructed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", logging.INFO)
-        self.cleanup() # Ensure cleanup is called 
-    
-    def cleanup(self): 
-        # Perform cleanup operations here
-        if self.deletion_thread.is_alive(): 
-            self.deletion_thread.cancel()
-        else: 
-            self.deletion_thread.join(timeout=5)
-
-        log_writer.log(f"AgentRunner instance cleaned up at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", logging.INFO) 
-
-        for runner in self.downloadclients: 
-            runner.cleanup() 
-        #endFor
-
-        log_writer.log(f"< < {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: Instance Deleted", logging.INFO)
         del self

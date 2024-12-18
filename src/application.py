@@ -20,9 +20,8 @@ class Agent:
     _instance = None
 
     #Thread Control Signals
-    __bool_agent_shutdown = False               # Set to True when agent is being shutdown
+    __bool_agent_terminate = False               # Set to True when agent is being shutdown
     __bool_threads_terminate = False    
-    __bool_threads_scheduler_terminate = False
     __bool_threads_scheduler_paused = False
 
     __int_thread_task_count = 0
@@ -74,13 +73,11 @@ class Agent:
 
     def is_Threads_Terminate_Requested(self) -> bool:
         return self.__bool_threads_terminate
-    def exec_Threads_Terminate(self):
+    def set_Threads_Terminate(self):
             self.__bool_threads_terminate = True
+    def clear_Threads_Terminate(self):
+            self.__bool_threads_terminate = False
 
-    def is_Scheduler_Terminate_Requested(self) -> bool:
-        return self.__bool_threads_scheduler_terminate
-    def exec_Scheduler_Terminate(self):
-            self.__bool_threads_scheduler_terminate = True
 
     def is_Scheduler_Paused(self) -> bool:
         return self.__bool_threads_scheduler_paused
@@ -90,14 +87,15 @@ class Agent:
         self.__bool_threads_scheduler_paused = True
     
     def __set_agent_shutdown(self):
-        self.__bool_agent_shutdown = True
+        self.__bool_agent_terminate = True
+        self.exec_Threads_Terminate()
+
     def is_Agent_Shutdown(self) -> bool :
-        return(self.__bool_agent_shutdown)
+        return(self.__bool_agent_terminate)
     def exec_Shutdown(self):
         self.__set_agent_shutdown()
         #will need a handler to give threads time
-        
-
+       
 
 # Global handler to allow threads a method of calling back to the main.py routine, to flag they have
 # experienced an exception - Fatal, that should cause the program to terminate.
@@ -170,7 +168,7 @@ class _Agent__Configuration:
 
     DOWNLOAD_YIELD_SECS = 10 # When in repeat mode, this is how many seconds we yield on a thread before repeating
     DOWNLOAD_OFFSET_MAX_MINS = 10 # Maximum minutes allows for offsetting tasks
-    
+   
     def __new__(cls, *args, **kwargs): 
         if not cls._instance: cls._instance = super(_Agent__Configuration, cls).__new__(cls, *args, **kwargs) 
         return cls._instance 

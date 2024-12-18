@@ -22,7 +22,7 @@ from application import Agent
 cls_agent = Agent()
 
 class Utils:
-    def scheduler_no_tasks_window(): 
+    def scheduler_no_tasks_window(self): 
         current_minute = datetime.datetime.now().minute 
         if current_minute in cls_agent.Configuration.SCHEDULER_NO_TASKS:  
             return True 

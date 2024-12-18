@@ -31,6 +31,7 @@ import time
 import json
 import kill_switch
 from agent.agent_helper import Utils
+from type_def import typedef_Agent_Client_Response
 
 cls_agent = Agent()
 
@@ -54,7 +55,7 @@ class AgentDownloader:
 
         #rate limit handler
         self.rate_limit = Limiter()
-
+    
 #-----> Cache handling of files that can be processed in the CSV file ----------------------------------------
     def __download_csv(self): 
         response = requests.get(cls_agent.Configuration.CSV_URL) 
@@ -109,7 +110,7 @@ class AgentDownloader:
                   retry: int, 
                   repeat: bool) -> None:
         
-        log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: filesize:{filesize} Repeating:{repeat}",logging.DEBUG)        
+        log_writer.log(f"AgentDownloader:download: Start | filesize:{filesize} | Repeating:{repeat}",logging.DEBUG)
 
         # ensure we go through one itteration
         repeat_loop = True  
@@ -128,12 +129,13 @@ class AgentDownloader:
             #*** Start Download
 
             #push into rate limiter, on true we are overloaded so break
-            rl = self.rate_limit.push_download()
+            rl = self.rate_limit.is_ratelimit_download()
             if rl:
                 break
 
             #start a performance instance
-            test_results = Performance.TestResults(test_type="download")
+            _download_results = Performance.TestResults(test_type="download")
+            _download_results.file_size = filesize
 
             #get address of a file from CSV to download
             file_address = self.__get_file_address(str.lower(filesize)) 
@@ -142,25 +144,32 @@ class AgentDownloader:
                 if isinstance(offset, int) and int(offset) > 0:
                     #call the offset, and sleep for this long
                     time_to_sleep = Utils.offset(offset_minutes=int(offset))
-                    log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: time_to_sleep {time_to_sleep}", logging.DEBUG)
+                    log_writer.log(f"AgentDownloader.download: offset is set | time_to_sleep {time_to_sleep}", logging.DEBUG)
                     time.sleep(time_to_sleep)
                 #endIf
 
                 #push our test instance, into a test we are about to run
-                test = Performance.Test(test_results.test_type) 
+                _performance = Performance.Test(_download_results.test_type) 
                                 
                 #push timer start
-                test.start_timer()
+                _performance.start_timer()
 
-                response = self.ant_client.download (file_address,timeout)
+                try:
+                    #custom type for client response handling - strong typing needed #todo
+                    _response: typedef_Agent_Client_Response = self.ant_client.download (file_address,timeout)
+                except Exception as e:
+                    #to:do need to fill in _response
+                    pass
 
-                #if response is soft fail - retry
-                test.stop_timer()
-                #end timer
-                #push performance stats
-                test_results.file_size = filesize #duplicate ?
+                _performance.stop_timer()
+                #end timer              
 
-                test.add_results(test_results)
+                #todo: populate actual data - data types need defining
+                _download_results.cli_err = _response.client_error
+                _download_results.md5 = _response.md5_valid
+                _download_results.un_err = _response.unknown_error
+
+                _performance.add_results(_download_results)
        
             else: 
                 #need to handle this somehow...
@@ -194,7 +203,6 @@ class AgentDownloader:
         #release test object
         test_results = None
 
-        self.cleanup()
+        log_writer.log(f"AgentDownloader:download: Finished",logging.DEBUG)
 
-    def cleanup (self):
         del self

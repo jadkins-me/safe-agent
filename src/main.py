@@ -65,11 +65,8 @@ if __name__ == "__main__":
     input_queue = queue.Queue()
     
     #Build Information
-    log_writer.log(f"Build Name: {cls_agent.version.BUILD_NAME}", logging.INFO)
-    log_writer.log(f"Build Version: {cls_agent.version.BUILD_VERSION}", logging.INFO)
-    log_writer.log(f"Build Commit Hash: {cls_agent.version.COMMIT_HASH}", logging.INFO)
-    log_writer.log(f"Build Date: {cls_agent.version.BUILD_DATE}", logging.INFO)
-
+    log_writer.log(f"Name: {cls_agent.version.BUILD_NAME} | Version: {cls_agent.version.BUILD_VERSION} | Date: {cls_agent.version.BUILD_DATE} | Commit Hash: {cls_agent.version.COMMIT_HASH}", logging.INFO)
+    
     #Detect if client can be found, else terminate
     client = ant_client()
     ant_version = client.version()
@@ -77,14 +74,12 @@ if __name__ == "__main__":
        log_writer.log(f"The 'autonomi' client command was not found. Have you installed it ?", logging.FATAL )
        sys.exit(1)
     else:
-        log_writer.log(f"Found Client: {ant_version}", logging.INFO)
+        log_writer.log(f"Found client: {ant_version}", logging.INFO)
     #endIfElse
-    client = None
-
+   
     #Create an instance of global test schedule, which will chain all the worker threads
     schedule_manager = ScheduleManager()
-    schedule_manager.initiate()
-    schedule_manager.fetch_tasks()  #todo - we manually call the fetch tasks here - this shouldn't be needed
+    schedule_manager.fetch_tasks() #todo: should the agent load tasks, and start instantly or wait until next automatic refresh  
 
     #create performance logging and metric global instance
     perf = Performance()
@@ -94,8 +89,7 @@ if __name__ == "__main__":
     rate_limit.show_limits()
 
     #Show console update that we are running
-    log_writer.log(f"Agent Scheduler Threads for (ScheduleManager) and (TaskManager) started", logging.INFO)
-    log_writer.log(F"Press >> q << to terminate agent - >> f << to fetch updated tasks before :00 - (10 second delay)", logging.INFO)
+    log_writer.log(F"Press [q] = terminate agent | [f] = fetch updated tasks | [s] = show current status -> all keypress have a (10 second delay)", logging.INFO)
 
      # Start the input reading thread 
     input_thread = threading.Thread(target=read_input, name="Thread-0(_main.read_input)") 
@@ -107,10 +101,10 @@ if __name__ == "__main__":
         try: 
             user_input = input_queue.get_nowait() 
             if user_input == 'q':
+                log_writer.log(f"Main.quit: Agent has received a stop signal.", logging.INFO)
                 cls_agent.exec_Shutdown() 
-                schedule_manager.terminate()
                 perf.shutdown()
-                log_writer.log(f"Scheduler Threads terminated and Agent is stopped.", logging.INFO)
+                #to-do: capture threads, and report when done
                 sys.exit(None)
                 #end __main__
             elif user_input == 'f': 

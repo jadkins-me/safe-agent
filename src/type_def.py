@@ -14,3 +14,18 @@ permissions and limitations relating to use of the Code/Software.
 
 ===================================================================================================
 """
+
+from dataclasses import dataclass
+
+# used in /client/ modules to return response codes
+@dataclass
+class typedef_Agent_Client_Response: 
+    md5_checked : bool = False           # True, md5 hash was checked
+    md5_valid   : bool = False           # True, the md5 of the file matches the provided hash
+    client_started : bool = False        # True, the wrapped binary was launched
+    client_ok      : bool = False        # True, the client ran as expected
+    client_killed : bool = False         # True, the client process had to be killed due to hanging, or long running process
+    client_error : bool = False          # True, an error occured with the client
+    network_error : bool = False         # True, an error occured with the network
+    unknown_error : bool = False         # True, an unknown error occured
+#endClass 

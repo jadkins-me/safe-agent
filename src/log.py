@@ -15,7 +15,10 @@ permissions and limitations relating to use of the Code/Software.
 ===================================================================================================
 """
 
-#todo : needs a complete re-write
+# todo : needs a complete re-write
+# needs to be thread safe, which it currently is not !
+# needs to implement queue, to allow threads to push logs into the queue FIFO
+
 import logging
 import os
 import time

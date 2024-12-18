@@ -51,19 +51,33 @@ class ScheduleManager:
         if not hasattr(self, 'initialized'): 
             # Ensure __init__ runs only once 
             self.initialized = True
-            self._instance = False  # Allow schedule setup only once, and define threads
 
-            self.tasks = []         # holds the tasks we have spawned from the test plan
-            self.agent_runners = [] # Store references to AgentRunner instances
+            self.tasks = []         # holds the tasks we have spawned from the test plan, and enables them to be queried
 
             #Schedule Manager (SM) Schedule used for running jobs - can be paused, and cleared
-            self._paused = True 
+            cls_agent.pause_Scheduler()
             self._stop_eventSM = threading.Event()
             self._schedulerSM = schedule.Scheduler()
 
             #Task Manager (TM) Schedule used solely for downloading jobs to run from github
             self._stop_eventTM = threading.Event()
             self._schedulerTM = schedule.Scheduler()
+
+            self.scheduler_threadSM = threading.Thread(target=self.__run_pendingSM,name="Thread-1(Scheduler.ScheduleManager.SM)")
+            self.scheduler_threadSM.start()
+            cls_agent.start_Scheduler()
+
+            self.scheduler_threadTM = threading.Thread(target=self.__run_pendingTM,name="Thread-1(Scheduler.ScheduleManager.TM)")
+            self.scheduler_threadTM.start()
+
+            self._stop_watchdog = threading.Event()
+            self._watchdog = threading.Thread(target=self.__run_watchdog, name="Thread-1(Scheduler._watchdog)")
+            self._watchdog.start()
+
+            #to-do: change schedule to every minute for fast refresh, and ability to invoke refresh with rate limit
+            self._schedulerTM.every().hour.at(cls_agent.Configuration.SCHEDULER_CHECK).do(self.fetch_tasks)
+            #self._schedulerTM.every(1).minutes.do(self.fetch_tasks)
+            log_writer.log(f"Starting Agent task refresh schedule (TM) to check github for jobs at {cls_agent.Configuration.SCHEDULER_CHECK}", logging.INFO)
         #endIf
     
     def __convert_to_colon_format(self, minutes_string):
@@ -135,7 +149,7 @@ class ScheduleManager:
     def __downloadtask_schedule(self, task):
         log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: {task.task_ref}", logging.DEBUG )
 
-        if Utils.scheduler_no_tasks_window():
+        if helper.scheduler_no_tasks_window():
             log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: _scheduler_no_tasks_window: TRUE", logging.DEBUG )
             #We can't execute this schedule, as we are in a no-tasks window
         elif killswitch_checker.check_for_kill_switch()[0]:
@@ -143,10 +157,13 @@ class ScheduleManager:
             #We can't execute this schedule, kill switch is active
         else:
             try:
-                #pass the task over to the Agent Runner to spawn the workers
+                #pass the task over to the Agent Runner, we abaondon the thread, and allow its own watchdog to control it
                 agent_runner = AgentRunner()
-                self.agent_runners.append(agent_runner) # Keep track of AgentRunner instances 
-                agent_runner.exec_download_task(task)
+                #Note : args = tuple, so the random , is needed, else we don't pass the correct object
+                _agent_thread = threading.Thread(target=agent_runner.exec_download_task,args=(task,),name=f"Thread-Runner.{task.task_ref}")
+                _agent_thread.setDaemon(True) # Make the thread a daemon thread
+                _agent_thread.start()
+
             except Exception as e:
                 log_writer.log(f"> > {self.__class__.__name__}/{inspect.currentframe().f_code.co_name}: {e}", logging.ERROR)
             #endTry
@@ -216,58 +233,60 @@ class ScheduleManager:
 
     def __run_pendingSM(self):
         while not self._stop_eventSM.is_set():
-            if not self._paused:
+            if not cls_agent.is_Scheduler_Paused():
                 self._schedulerSM.run_pending()
             time.sleep(1)
 
     def __run_pendingTM(self):
         while not self._stop_eventTM.is_set():
             self._schedulerTM.run_pending()
-            time.sleep(1)        
+            time.sleep(1)
+
+#watchdog, looking for global events to control threads in this class
+    def __run_watchdog(self):
+        log_writer.log(f"ScheduleManager.__run_watchdog: Watchdog thread started",logging.DEBUG)
+        
+        while not self._stop_watchdog.is_set():
+            if cls_agent.is_Agent_Shutdown():
+                self._stop_watchdog.set()
+                self.terminate()
+            if helper.scheduler_no_tasks_window() and not cls_agent.is_Threads_Terminate_Requested():
+                cls_agent.set_Threads_Terminate()
+            elif not helper.scheduler_no_tasks_window() and cls_agent.is_Threads_Terminate_Requested():
+                cls_agent.clear_Threads_Terminate()
+            #endIfElse
+
+            time.sleep(1)
+        #endWhile
+
+        log_writer.log(f"ScheduleManager.__run_watchdog: Watchdog thread exited",logging.DEBUG)
 
     def __purge_envionment(self):
         #todo : routines to clear out old test runs, logs, and cache
         pass
 
-    def initiate(self):
-        if not self._instance:
-            self.scheduler_threadSM = threading.Thread(target=self.__run_pendingSM,name="Thread-1(Scheduler.ScheduleManager.SM)")
-            self.scheduler_threadSM.start()
-            self._paused = False
-
-            self.scheduler_threadTM = threading.Thread(target=self.__run_pendingTM,name="Thread-1(Scheduler.ScheduleManager.TM)")
-            self.scheduler_threadTM.start()
-
-            #to-do: change schedule to every minute for fast refresh, and ability to invoke refresh with rate limit
-            self._schedulerTM.every().hour.at(cls_agent.Configuration.SCHEDULER_CHECK).do(self.fetch_tasks)
-            #self._schedulerTM.every(1).minutes.do(self.fetch_tasks)
-            log_writer.log(f"Starting TM Scheduler to check github for new jobs at {cls_agent.Configuration.SCHEDULER_CHECK} every hour", logging.INFO)
-            self._instance = True      
-        else:
-            log_writer.log(F"Scheduler intiate has been called more than once, this is not supported.", logging.ERROR)
-        #endIfElse
-
     def terminate(self):
+        log_writer.log(f"ScheduleManager.Terminate: Started", logging.DEBUG)
+
         self._stop_eventSM.set()
         self._stop_eventTM.set()
+        
         self.scheduler_threadSM.join()
         self.scheduler_threadTM.join()
-        log_writer.log(f"Agent Scheduler TM & SM received Terminate signal -", logging.WARNING)
 
-        # Ensure all AgentRunner instances are cleaned up 
-        for runner in self.agent_runners: 
-            runner.cleanup() 
-        log_writer.log(f"Agent Scheduler - AgentRunner instances cleaned up", logging.INFO)
+        log_writer.log(f"ScheduleManager.Terminate: Finished", logging.DEBUG)
 
     def pause_schedule(self):
-        self._paused = True
-        log_writer.log(f"Agent Scheduler SM received pause signal ||", logging.INFO)
+        cls_agent.pause_Scheduler()
+        log_writer.log(f"ScheduleManager.pause_schedule : Finished", logging.DEBUG)
 
     def resume_schedule(self):
-        self._paused = False
-        log_writer.log(f"Agent Scheduler SM received resume signal +", logging.INFO)
+        cls_agent.start_Scheduler()
+        log_writer.log(f"ScheduleManager.resume_schedule : Finished", logging.DEBUG)
 
     def clear_schedule(self):
         self._schedulerSM.clear()
         self.tasks = []
-        log_writer.log(f"Agent Scheduler SM received clear signal >|", logging.INFO)
+        log_writer.log(f"ScheduleManager.clear_schedule : Finished", logging.DEBUG)
+
+
