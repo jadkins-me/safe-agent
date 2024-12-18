@@ -9,7 +9,7 @@
     <TestType>Download</TestType>
     <TestOptions>
       <Option key="filesize" value="tiny"/>
-      <Option key="workers" value="2"/>
+      <Option key="workers" value="5"/>
       <Option key="repeat" value="false"/>
       <Option key="offset" value="0"/> 
       <Option key="repeat" value="false"/>
