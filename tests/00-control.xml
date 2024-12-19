@@ -3,12 +3,12 @@
   <!-- Task to check download a tiny file, at 5 minutes past the hour -->
   <Task> 
     <TaskRef>001</TaskRef>
-    <Description>Download a tiny file from network once an hour at 5 minutes past the hour</Description>
+    <Description>Download a medium file from network once an hour at 5 minutes past the hour</Description>
     <TimePeriod>5</TimePeriod>
     <TimeOffset>0</TimeOffset>
     <TestType>Download</TestType>
     <TestOptions>
-      <Option key="filesize" value="tiny"/>
+      <Option key="filesize" value="medium"/>
       <Option key="workers" value="5"/>
       <Option key="repeat" value="false"/>
       <Option key="offset" value="0"/> 
