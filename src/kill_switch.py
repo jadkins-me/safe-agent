@@ -61,24 +61,36 @@ class GitHubRepoIssuesChecker:
         
         # Substitute the variables into the URL
         url = self.url.format(owner=self.owner, repo=self.repo)
-        response = requests.get(url)
-        response.raise_for_status()  # Raise an error if the request was unsuccessful
-        return response.json()
-
+        try:
+           response = requests.get(url)
+           response.raise_for_status()  # Raise an error if the request was unsuccessful
+        except Exception as e:
+           log_writer.log(f"GitHubRepoIssuesChecker.__get_issues: request.get threw exception {e}", logging.DEBUG)
+           return None, True
+        
+        return response.json() , False
+        #endTry
+        
     @ignore_rate_limit 
     @limits(calls=60, period=CONST_ONE_HOUR)
     def check_for_kill_switch(self):
-        issues = self.__get_issues()
-        for issue in issues:
-            if issue['state'] == 'open':
-                labels = [label['name'].lower() for label in issue['labels']]
-                if 'kill-switch' in labels:
-                    creation_date = issue['created_at']
-                    # Parse the creation date and convert to European format with UTC time
-                    creation_date = datetime.strptime(creation_date, "%Y-%m-%dT%H:%M:%SZ")
-                    formatted_date = creation_date.strftime("%d/%m/%Y %H:%M:%S UTC")
-                    return True, formatted_date
+        issues,_failure = self.__get_issues()
+        if not _failure:
+            for issue in issues:
+                if issue['state'] == 'open':
+                    labels = [label['name'].lower() for label in issue['labels']]
+                    if 'kill-switch' in labels:
+                        creation_date = issue['created_at']
+                        # Parse the creation date and convert to European format with UTC time
+                        creation_date = datetime.strptime(creation_date, "%Y-%m-%dT%H:%M:%SZ")
+                        formatted_date = creation_date.strftime("%d/%m/%Y %H:%M:%S UTC")
+                        return True, formatted_date
+                    #endIf
                 #endIf
-            #endIf
-        #endFor
+            #endFor
+        else:
+            log_writer.log(f"GitHubRepoIssuesChecker.check_for_kill_switch: Killswitch defaulting to enabled due to HTTP exception", logging.DEBUG)
+            return True, None
+        #endIfElse   
+
         return False, None

@@ -76,7 +76,7 @@ class Performance:
         
         with open(self.metrics_file, 'a') as file: 
             for metric in temp_metrics: 
-                file.write(f"{self.perf_influxdb},test={metric.test_type} filesize=\"{metric.file_size}\",md5={metric.md5},cost={metric.cost},cli_err={metric.cli_err},nw_err={metric.nw_err},un_err={metric.un_err},exec={metric.execution} {self.__get_influxdb_time()}\n")
+                file.write(f"{self.perf_influxdb},test={metric.test_type} filesize=\"{metric.filesize}\",md5={metric.md5},cost={metric.cost},cli_err={metric.cli_err},nw_err={metric.nw_err},un_err={metric.un_err},exec={metric.execution} {self.__get_influxdb_time()}\n")
     
     def __1_min_flush(self): 
         # Every 1 minute, calculate stats and flush metrics to disk 
@@ -121,7 +121,7 @@ class Performance:
         def __init__( 
                 self, 
                 test_type: str, 
-                file_size: Optional[float] = 0, 
+                filesize: Optional[str] = None, 
                 execution: Optional[float] = 0, 
                 md5: Optional[float] = 0, 
                 cost: Optional[float] = 0, 
@@ -130,7 +130,7 @@ class Performance:
                 un_err: int = 0 
         ): 
             self.test_type = test_type 
-            self.file_size = file_size 
+            self.filesize = filesize 
             self.execution = execution 
             self.md5 = md5 
             self.cost = cost 
@@ -140,7 +140,7 @@ class Performance:
         
         def __repr__(self): 
             return ( 
-                f"TestResults(test_type={self.test_type!r}, file_size={self.file_size!r}, execution={self.execution!r}, " 
+                f"TestResults(test_type={self.test_type!r}, filesize={self.filesize!r}, execution={self.execution!r}, " 
                 f"md5={self.md5!r}, cost={self.cost!r}, cli_err={self.cli_err!r}, nw_err={self.nw_err!r}, un_err={self.un_err!r})" 
             )
 

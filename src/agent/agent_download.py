@@ -135,7 +135,7 @@ class AgentDownloader:
 
             #start a performance instance
             _download_results = Performance.TestResults(test_type="download")
-            _download_results.file_size = filesize
+            _download_results.filesize = filesize
 
             #get address of a file from CSV to download
             file_address = self.__get_file_address(str.lower(filesize)) 

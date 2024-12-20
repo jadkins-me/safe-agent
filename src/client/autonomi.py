@@ -35,7 +35,7 @@ class ant_client:
 
    def __del__(self):
       #todo: wrong place
-      log_writer.log(f"Ant_Client:download: Finsihed",logging.DEBUG)        
+      log_writer.log(f"Ant_Client:download: Finished",logging.DEBUG)        
    
    def __get_temp_filepath (self,filename):
       if filename:
@@ -56,12 +56,14 @@ class ant_client:
       pass
 
    def download(self, file_address, timeout):
+
       _error_network ="error:network"
       _error_client = "error:client"
-      
+
       _error_messages = { 
-         "could not connect to enough peers in time": f"{_error_network}",
-         "failed to connect to network": f"{_error_network}"
+         "could not connect to enough peers in time": _error_network,
+         "failed to connect to network": _error_network,
+         "general networking error" : _error_network
       }
 
       # BOILER: todo
@@ -71,7 +73,7 @@ class ant_client:
       temp_file_name_log = "./cache/log/"
 
       command = [ 
-         './bin/autonomi', 
+         './bin/ant', 
          '--timeout', str(timeout), 
          '--log-output-dest', 
          temp_file_name_log, 
@@ -131,7 +133,7 @@ class ant_client:
             _return_results.client_ok = True
       #endTry
 
-      #todo: process md5
+      #todo: process md5 - and check the file downloaded first - if file exists else we error, and waste time 
       if file_address.md5:
          _return_results.md5_checked = True
          
@@ -168,7 +170,7 @@ class ant_client:
 
    def version(self):
       try:
-         result = subprocess.run(['./bin/autonomi', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+         result = subprocess.run(['./bin/ant', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
          return result.stdout.strip()
       except subprocess.CalledProcessError as e:
          return f"Error: {e.stderr.strip()}"

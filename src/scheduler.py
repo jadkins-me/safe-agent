@@ -89,12 +89,10 @@ class ScheduleManager:
             log_writer.log(f"Task already scheduled at {self.__convert_to_colon_format(task.time_period)}", logging.ERROR)
             return
         if task.test_type.lower() == "download":
-            self._schedulerSM.every(1).minute.do(self.__downloadtask_schedule, task)
-            #self._schedulerSM.every().hour.at(self.__convert_to_colon_format(task.time_period)).do(self.__downloadtask_schedule, task)
-            self.tasks.append((task, "download", self.__convert_to_colon_format(task.time_period)))
+            self._schedulerSM.every().hour.at(self.__convert_to_colon_format(task.time_period)).do(self.__downloadtask_schedule, task)
+            self.tasks.append(task)
         elif task.test_type.lower() == "quote":
-            self._schedulerSM.every(2).minutes.do(self.__quotetask_schedule, task)
-            #self._schedulerSM.every().hour.at(self.__convert_to_colon_format(task.time_period)).do(self.__quotetask_schedule, task)
+            self._schedulerSM.every().hour.at(self.__convert_to_colon_format(task.time_period)).do(self.__quotetask_schedule, task)
             self.tasks.append((task, "quote", self.__convert_to_colon_format(task.time_period)))
         elif task.test_type.lower() == "upload":
             self._schedulerSM.every().hour.at(self.__convert_to_colon_format(task.time_period)).do(self.__uploadtask_schedule, task)
@@ -115,30 +113,12 @@ class ScheduleManager:
         if killswitch_found:
             log_writer.log(f"Kill-switch ON, test paused by github issue created {datetime}, agent active.",logging.WARNING)
         else:
-            tasks = Agent_Task.fetch_and_parse_xml(cls_agent.Configuration.SCHEDULER_URL)
+            _tasks = Agent_Task.fetch_and_parse_xml(cls_agent.Configuration.SCHEDULER_URL)
 
-            # Collect data for table, and store it in tabulate format 
-            table_data = []
-
-            for task in tasks:
-                table_data.append( {
-                    "Task": f"{task.task_ref}",
-                    "Mins" : f"{task.time_period}",
-                    "Worker": f"{task.test_options.get('workers', None)}", 
-                    "Repeat": f"{task.test_options.get('repeat', False)}",
-                    "Offset": f"{task.test_options.get('offset', None)}",
-                    "Type": f"{task.test_type}", 
-                    "Description": f"{task.description}" 
-                })
-
+            for task in _tasks:
                 self.__add_task(task)
-            #EndFor
 
-            # Create a nice looking table 
-            table = tabulate(table_data, headers="keys", tablefmt="grid", numalign="centre")
-
-            # todo - logger doesnt support tabulate format
-            print(f"{table}")
+            self.list_schedules()
 
             self.__purge_envionment()
 
@@ -222,14 +202,60 @@ class ScheduleManager:
         if not self.tasks:
             print("No tasks scheduled.")
         else:
-            for task in self.tasks:
-                log_writer.log(f"Task: {task}")
+            # Collect data for table, and store it in tabulate format 
+            table_data = []
 
+            for task in self.tasks:
+                table_data.append( {
+                    "Task": f"{task.task_ref}",
+                    "Mins" : f"{task.time_period}",
+                    "Worker": f"{task.test_options.get('workers', None)}", 
+                    "Repeat": f"{task.test_options.get('repeat', False)}",
+                    #"Offset": f"{task.test_options.get('offset', None)}",
+                    "Type": f"{task.test_type}",
+                    "Size": f"{task.test_options.get('filesize', None)}",
+                    "Description": f"{task.description}" 
+                }) 
+            #EndFor
+
+            # Create a nice looking table 
+            table = tabulate(table_data, headers="keys", tablefmt="grid", numalign="centre")
+
+            # todo - logger doesnt support tabulate format
+            print(f"{table}")
+        #endIfElse
+
+    #todo: needs rewrite as this will never fire due to data structure change
     def task_already_scheduled(self, time):
         for _, _, scheduled_time in self.tasks:
             if scheduled_time == time:
                 return True
         return False
+
+    def run_task_manually(self):
+        self.pause_schedule()
+        self.list_schedules()
+        log_writer.log(f"Please enter the Task Ref for the task to execute",logging.INFO)
+
+        _response = input("Task Ref (blank to exit and resume schedule)=")
+
+        #todo - needs finishing
+        for task in self.tasks:
+            if task.task_ref == _response:
+                log_writer.log(f"Manually launching {_response}",logging.INFO)
+                if task.test_type.lower() == 'download':
+                    self.__downloadtask_schedule(task)
+                elif task.test_type.lower() =='quote':
+                    self.__quotetask_schedule(task)
+                elif task.test_type.lower() =='upload':
+                    self.__uploadtask_schedule(task)
+                #endIfElse
+            else:
+                log_writer.log(f"Task Ref was not found...",logging.INFO)
+            #endIf
+        #endFor
+
+        self.resume_schedule()
 
     def __run_pendingSM(self):
         while not self._stop_eventSM.is_set():

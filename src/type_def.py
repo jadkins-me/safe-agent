@@ -29,3 +29,20 @@ class typedef_Agent_Client_Response:
     network_error : bool = False         # True, an error occured with the network
     unknown_error : bool = False         # True, an unknown error occured
 #endClass 
+
+@dataclass
+class typedef_Agent_Task:
+    task_ref : str = None                # Task Reference 000 through to 999
+    time_period : str = None             # Time Period from 00 through to 59 (minutes)
+    test_type : str = None               # Type of test i.e. download, quote, upload
+    description : str = None             # Brief description of task
+    test_options : 'typedef_Agent_Task_Options' = None  # A class of class options
+#endClass
+
+@dataclass
+class typedef_Agent_Task_Options:
+    filesize : str = None                # Task Filesize, small, tiny, medium etc
+    workers : int = 1                    # Number of task workers to spawn
+    offset : int = 0                     # Offset of task in minutes
+    repeat : bool = False                # If True, then repeat the task
+#endClass

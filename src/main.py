@@ -40,14 +40,23 @@ def getch():
         ch = sys.stdin.read(1) 
     finally: 
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings) 
-        return ch 
+        return ch
+     
+def pause_input_getch():
+    global _getch_input_enabled
+    _getch_input_enabled = False
+
+def start_input_getch():
+    global _getch_input_enabled
+    _getch_input_enabled = True
 
 def read_input(): 
     while True: 
-        ch = getch() 
-        input_queue.put(ch) 
-        if ch == 'q': 
-            break
+        if _getch_input_enabled:
+            ch = getch() 
+            input_queue.put(ch) 
+            if ch == 'q': 
+                break
 
 # MAIN -------------------------------------------------------------------------
 if __name__ == "__main__":
@@ -63,6 +72,7 @@ if __name__ == "__main__":
 
     #handler for the main input loop
     input_queue = queue.Queue()
+    _getch_input_enabled = False
     
     #Build Information
     log_writer.log(f"Name: {cls_agent.version.BUILD_NAME} | Version: {cls_agent.version.BUILD_VERSION} | Date: {cls_agent.version.BUILD_DATE} | Commit Hash: {cls_agent.version.COMMIT_HASH}", logging.INFO)
@@ -71,7 +81,7 @@ if __name__ == "__main__":
     client = ant_client()
     ant_version = client.version()
     if "not_found" in ant_version:
-       log_writer.log(f"The 'autonomi' client command was not found. Have you installed it ?", logging.FATAL )
+       log_writer.log(f"The autonomi 'ant' client command was not found. Have you installed it ?", logging.FATAL )
        sys.exit(1)
     else:
         log_writer.log(f"Found client: {ant_version}", logging.INFO)
@@ -89,18 +99,20 @@ if __name__ == "__main__":
     rate_limit.show_limits()
 
     #Show console update that we are running
-    log_writer.log(F"Press [q] = terminate agent | [f] = fetch updated tasks | [s] = show current status -> all keypress have a (10 second delay)", logging.INFO)
+    log_writer.log(F"Press [q] = Quit Agent | [f] = Fetch Tasks | [r] = Run task manually | [s] = show status -> all keypress have a (10 second delay)", logging.INFO)
 
      # Start the input reading thread 
     input_thread = threading.Thread(target=read_input, name="Thread-0(_main.read_input)") 
     input_thread.daemon = True 
-    input_thread.start() 
+    input_thread.start()
+    start_input_getch()
 
     #Lazy main loop # todo - needs to support service / docker / webapp
     while True: 
         try: 
             user_input = input_queue.get_nowait() 
             if user_input == 'q':
+                pause_input_getch()
                 log_writer.log(f"Main.quit: Agent has received a stop signal.", logging.INFO)
                 cls_agent.exec_Shutdown() 
                 perf.shutdown()
@@ -108,7 +120,13 @@ if __name__ == "__main__":
                 sys.exit(None)
                 #end __main__
             elif user_input == 'f': 
+                pause_input_getch()
                 schedule_manager.fetch_tasks()
+                start_input_getch()
+            elif user_input == 'r':
+                pause_input_getch()
+                schedule_manager.run_task_manually()
+                start_input_getch()
             #endIf
         except queue.Empty: 
             # handle this when no user input - should really be somewhere else

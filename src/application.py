@@ -28,6 +28,7 @@ class Agent:
     __int_thread_worker_count = 0
     
     import version              # Version Information on Agent
+    import type_def             # Custom Data Types
 
     Exception = None            # Application Exception Handler class
     Configuration = None        # Application Configuration
@@ -144,6 +145,9 @@ class _Agent__ExceptionHandler:
 class _Agent__Configuration:
     #Ensure this is a single instance class
     _instance = None
+    
+    from telemetry import Telemetry                 # import telemetry defaults
+    _Telemetry = None
 
     # European date format
     DATE_FORMAT = '%d-%m-%Y %H:%M:%S'
@@ -168,7 +172,11 @@ class _Agent__Configuration:
 
     DOWNLOAD_YIELD_SECS = 10 # When in repeat mode, this is how many seconds we yield on a thread before repeating
     DOWNLOAD_OFFSET_MAX_MINS = 10 # Maximum minutes allows for offsetting tasks
-   
+
+    TELEMETRY_COUNTRY = None
+    TELEMETRY_PROVISON = None
+    TELEMETRY_CONNECTION = None
+
     def __new__(cls, *args, **kwargs): 
         if not cls._instance: cls._instance = super(_Agent__Configuration, cls).__new__(cls, *args, **kwargs) 
         return cls._instance 
@@ -178,9 +186,21 @@ class _Agent__Configuration:
             # Ensure __init__ runs only once 
             self.initialized = True 
 
+            self._Telemetry = self.Telemetry()
+
     def load (self):
         #todo - load settings from env, config file, and pass any args
         global DEFAULT_LOG_LEVEL
         global LOG_TO_FILE
+        
         DEFAULT_LOG_LEVEL = 'DEBUG'
         LOG_TO_FILE = True
+
+        global TELEMETRY_COUNTRY
+        TELEMETRY_COUNTRY = self._Telemetry.get()["country"]
+
+        global TELEMETRY_PROVISON
+        TELEMETRY_PROVISON = self._Telemetry.get()["provision"]
+
+        global TELEMETRY_CONNECTION
+        TELEMETRY_CONNECTION = self._Telemetry.get()["connection"]

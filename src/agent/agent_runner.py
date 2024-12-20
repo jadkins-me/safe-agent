@@ -33,7 +33,15 @@ CONST_DEFAULT_WORKERS = 1
 CONST_MAX_WORKERS = 10
 
 CONST_DEFAULT_FILESIZE = "tiny"
-CONST_FILESIZES = { "small": "small", "tiny": "tiny", "huge": "huge" } 
+CONST_FILESIZES = { 
+    "tiny": "tiny", 
+    "small": "small",   
+    "medium": "medium",
+    "large" : "large",
+    "huge" : "huge",
+    "giga" : "giga",
+    "tera" : "tera"
+    } 
 
 CONST_DEFAULT_OFFSET = 0
 CONST_DEFAULT_RETRY = 3
