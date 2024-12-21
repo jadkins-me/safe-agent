@@ -19,7 +19,7 @@ _error_network ="error:network"
 _error_client = "error:client"
 
 _error_messages = { 
-    "could not connect to enough peers in time": f"{_error_network}",
-    "failed to connect to network": f"{_error_network}",
-    "general networking error" : f"{_error_network}"
+    "could not connect to enough peers in time": _error_network,
+    "failed to connect to network": _error_network,
+    "general networking error" : _error_network
 }

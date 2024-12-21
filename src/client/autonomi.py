@@ -24,6 +24,7 @@ import hashlib
 from log import LogWriter
 from application import Agent
 from type_def import typedef_Agent_Client_Response
+from client import autonomi_messages
 
 cls_agent = Agent()
 log_writer = LogWriter()
@@ -43,13 +44,16 @@ class ant_client:
       else:
          prefix ="unknown"
 
-      custom_path = "./cache/downloads"
-      temp_file_name = os.path.join( custom_path, f"{prefix}_{next(tempfile._get_candidate_names())}" )
+      temp_file_name = os.path.join( cls_agent.Configuration.CLIENT_DOWNLOAD_PATH, f"{prefix}_{next(tempfile._get_candidate_names())}" )
       return (temp_file_name)
    
    def __del_temp_filepath (self,filename):
-      #todo
-      pass
+      try: 
+         if os.path.isfile(filename): 
+            os.remove(filename) 
+         #endIf
+      except Exception as e: 
+         log_writer.log(f"ant_client.__del_temp_filepath: Error occurred while deleting {filename}: {e}",logging.DEBUG)
    
    def quote(self, filename, timeout=30):
       # BOILER: todo
@@ -57,32 +61,38 @@ class ant_client:
 
    def download(self, file_address, timeout):
 
-      _error_network ="error:network"
-      _error_client = "error:client"
-
-      _error_messages = { 
-         "could not connect to enough peers in time": _error_network,
-         "failed to connect to network": _error_network,
-         "general networking error" : _error_network
-      }
-
       # BOILER: todo
-      log_writer.log(f"Ant_Client:download: Start | file: {file_address.name} | address: {file_address.address}",logging.DEBUG)        
+      log_writer.log(f"ant_client:download: Start | file: {file_address.name} | address: {file_address.address}",logging.DEBUG)        
 
       temp_file_name = self.__get_temp_filepath(file_address.name)
-      temp_file_name_log = "./cache/log/"
+      temp_file_name_log = cls_agent.Configuration.CLIENT_LOGGING_PATH
 
-      command = [ 
-         './bin/ant', 
-         '--timeout', str(timeout), 
-         '--log-output-dest', 
-         temp_file_name_log, 
-         'file', 
-         'download', 
-         file_address.address, 
-         temp_file_name 
-      ] 
-      
+      #pass custom peers from environment
+      if cls_agent.Configuration.CLIENT_PEERS:
+         command = [ 
+            './bin/ant', 
+            '--peer', str(cls_agent.Configuration.CLIENT_PEERS),
+            '--timeout', str(timeout), 
+            '--log-output-dest', 
+            temp_file_name_log, 
+            'file', 
+            'download', 
+            file_address.address, 
+            temp_file_name 
+         ]
+      else:
+         command = [ 
+            './bin/ant', 
+            '--timeout', str(timeout), 
+            '--log-output-dest', 
+            temp_file_name_log, 
+            'file', 
+            'download', 
+            file_address.address, 
+            temp_file_name 
+         ]
+      #endIf
+
       _return_results = typedef_Agent_Client_Response
 
       try:
@@ -103,13 +113,15 @@ class ant_client:
 
          _stderr_break = False
          
+         a = autonomi_messages._error_messages
+
          #pass stderr
-         for error, tag in _error_messages.items(): 
+         for error, tag in autonomi_messages._error_messages.items(): 
             if error in stderr.lower(): 
                _stderr_break = True
-               if tag == _error_network:
+               if tag == autonomi_messages._error_network:
                   _return_results.network_error = True
-               elif tag == _error_client:
+               elif tag == autonomi_messages._error_client:
                   _return_results.client_error = True
                
                log_writer.log(f"ant_client.download: processing stderr found a match | _return_tag={tag}",logging.DEBUG)
@@ -137,7 +149,7 @@ class ant_client:
       if file_address.md5:
          _return_results.md5_checked = True
          
-         file_md5 = self.calculate_md5(temp_file_name,file_address.md5)
+         file_md5 = self.verify_md5(temp_file_name,file_address.md5)
          if file_md5:
             _return_results.md5_valid = True
 
@@ -161,7 +173,7 @@ class ant_client:
       return hasher.hexdigest() 
    
    def verify_md5(self,file_path, supplied_hash): 
-      file_md5 = calculate_md5(file_path) 
+      file_md5 = self.calculate_md5(file_path) 
       return file_md5 == supplied_hash
    
    def upload(self, filename, timeout=30):

@@ -177,6 +177,12 @@ class _Agent__Configuration:
     TELEMETRY_PROVISON = None
     TELEMETRY_CONNECTION = None
 
+    CLIENT_PEERS = None                                  # Peers used to bootstrap the client
+    CLIENT_DOWNLOAD_PATH = "./cache/downloads"           # temporary location of downloaded files
+    CLIENT_LOGGING_PATH = "./cache/log/"                 # Temporary location for client logging
+
+    AGENT_LOCALE = "en_US"              # default locals
+
     def __new__(cls, *args, **kwargs): 
         if not cls._instance: cls._instance = super(_Agent__Configuration, cls).__new__(cls, *args, **kwargs) 
         return cls._instance 
@@ -204,3 +210,26 @@ class _Agent__Configuration:
 
         global TELEMETRY_CONNECTION
         TELEMETRY_CONNECTION = self._Telemetry.get()["connection"]
+
+        self._loadenv() # Load environment variables
+
+    def _loadenv(self):
+        import os
+        from dotenv import load_dotenv
+
+        # Load environment variables from a specific .env file
+        load_dotenv(dotenv_path='./.env')
+        for attribute in dir(self):
+            if not attribute.startswith("_") and attribute.isupper():
+                env_value = os.getenv(attribute)
+                if env_value is not None:
+                    current_value = getattr(self, attribute)
+                    if isinstance(current_value, list):
+                        # Convert env value back to list
+                        setattr(self, attribute, list(map(int, env_value.split(','))))
+                    elif isinstance(current_value, int):
+                        setattr(self, attribute, int(env_value))
+                    elif isinstance(current_value, float):
+                        setattr(self, attribute, float(env_value))
+                    else:
+                        setattr(self, attribute, env_value)

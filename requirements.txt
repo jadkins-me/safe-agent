@@ -3,3 +3,4 @@ schedule
 time
 threading
 sys
+python-dotenv

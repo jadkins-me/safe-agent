@@ -65,7 +65,7 @@ if __name__ == "__main__":
     cls_agent = Agent()
     cls_agent.start()
     cls_agent.Configuration.load()
-
+    
     #singleton class logging thread
     log_writer = LogWriter()
     log_writer.config()
